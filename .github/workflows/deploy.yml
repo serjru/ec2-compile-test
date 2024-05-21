@@ -23,7 +23,7 @@ jobs:
       - name: Launch EC2 instance
         id: ec2
         run: |
-          INSTANCE_ID=$(aws ec2 run-instances --image-id ami-12345678 --count 1 --instance-type t2.micro --key-name your-key-pair --query 'Instances[0].InstanceId' --output text)
+          INSTANCE_ID=$(aws ec2 run-instances --image-id ami-0bb84b8ffd87024d8 --count 1 --instance-type t2.micro --key-name your-key-pair --query 'Instances[0].InstanceId' --output text)
           echo "::set-output name=instance_id::$INSTANCE_ID"
 
       - name: Wait for EC2 instance to be running
@@ -41,7 +41,7 @@ jobs:
       - name: Compile code on EC2
         run: |
           PUBLIC_DNS=${{ steps.dns.outputs.public_dns }}
-          ssh -o StrictHostKeyChecking=no -i your-key-pair.pem ec2-user@$PUBLIC_DNS "git clone https://github.com/your-username/ec2-compile-test.git && cd ec2-compile-test && ./compile-script.sh"
+          ssh -o StrictHostKeyChecking=no -i your-key-pair.pem ec2-user@$PUBLIC_DNS "git clone https://github.com/serjru/ec2-compile-test.git && cd ec2-compile-test && ./compile-script.sh"
 
       - name: Distribute binaries
         run: |
