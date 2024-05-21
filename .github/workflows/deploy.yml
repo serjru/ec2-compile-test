@@ -46,12 +46,7 @@ jobs:
       - name: Compile code on EC2
         run: |
           PUBLIC_DNS=${{ steps.dns.outputs.public_dns }}
-          ssh -o StrictHostKeyChecking=no ec2-user@$PUBLIC_DNS "git clone https://github.com/serjru/ec2-compile-test.git && cd ec2-compile-test && ./compile-script.sh"
-
-      - name: Distribute binaries
-        run: |
-          PUBLIC_DNS=${{ steps.dns.outputs.public_dns }}
-          scp -o StrictHostKeyChecking=no ec2-user@$PUBLIC_DNS:/path/to/your/binary /local/path/to/store/binary
+          ssh -o StrictHostKeyChecking=no ec2-user@$PUBLIC_DNS "sudo yum install git -y && git clone https://github.com/serjru/ec2-compile-test.git && cd ec2-compile-test && chmod +x ./compile-script.sh && ./compile-script.sh"
 
       - name: Terminate EC2 instance
         run: |
