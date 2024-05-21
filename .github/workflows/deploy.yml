@@ -1,0 +1,55 @@
+name: Deploy and Compile on EC2
+
+on:
+  push:
+    branches:
+      - main  # Change to your desired branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1  # Change to your AWS region
+
+      - name: Launch EC2 instance
+        id: ec2
+        run: |
+          INSTANCE_ID=$(aws ec2 run-instances --image-id ami-12345678 --count 1 --instance-type t2.micro --key-name your-key-pair --query 'Instances[0].InstanceId' --output text)
+          echo "::set-output name=instance_id::$INSTANCE_ID"
+
+      - name: Wait for EC2 instance to be running
+        run: |
+          INSTANCE_ID=${{ steps.ec2.outputs.instance_id }}
+          aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+
+      - name: Get EC2 public DNS
+        id: dns
+        run: |
+          INSTANCE_ID=${{ steps.ec2.outputs.instance_id }}
+          PUBLIC_DNS=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query 'Reservations[0].Instances[0].PublicDnsName' --output text)
+          echo "::set-output name=public_dns::$PUBLIC_DNS"
+
+      - name: Compile code on EC2
+        run: |
+          PUBLIC_DNS=${{ steps.dns.outputs.public_dns }}
+          ssh -o StrictHostKeyChecking=no -i your-key-pair.pem ec2-user@$PUBLIC_DNS "git clone https://github.com/your-username/ec2-compile-test.git && cd ec2-compile-test && ./compile-script.sh"
+
+      - name: Distribute binaries
+        run: |
+          PUBLIC_DNS=${{ steps.dns.outputs.public_dns }}
+          scp -o StrictHostKeyChecking=no -i your-key-pair.pem ec2-user@$PUBLIC_DNS:/path/to/your/binary /local/path/to/store/binary
+
+      - name: Terminate EC2 instance
+        run: |
+          INSTANCE_ID=${{ steps.ec2.outputs.instance_id }}
+          aws ec2 terminate-instances --instance-ids $INSTANCE_ID
+          aws ec2 wait instance-terminated --instance-ids $INSTANCE_ID
